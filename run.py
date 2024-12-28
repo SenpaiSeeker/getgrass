@@ -237,14 +237,7 @@ async def connect_to_wss(socks5_proxy, user_id, mode):
                         await websocket.send(json.dumps(pong_response))
                         
         except Exception as e:
-            colorful_log(
-                proxy=socks5_proxy, 
-                device_id=device_id, 
-                message_type="ERROR", 
-                message_content=str(e),
-                mode=mode
-            )
-            await asyncio.sleep(5)
+            pass
 
 async def main():
     print(f"{Fore.CYAN}{BANNER}{Style.RESET_ALL}")
