@@ -3,7 +3,7 @@ function auto() {
     sleep 10
     echo -e "1\n2oBxMwrs5Dqkb0vV6d5toO1Ni9n" | python3 run.py &
     GRASS_PID=$!
-    echo "grass_desktop.py running with PID: $GRASS_PID"
+    echo "run.py running with PID: $GRASS_PID"
 }
 function stop_grass() {
     if [ ! -z "$GRASS_PID" ]; then
