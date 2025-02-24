@@ -2,7 +2,7 @@ function auto() {
     python3 auto_proxy.py proxy_list.txt
     sleep 10
     TOKEN=$(cat token.txt)
-    echo -e "1\n2$TOKEN" | python3 run.py &
+    echo -e "1\n$TOKEN" | python3 run.py &
     GRASS_PID=$!
     echo "run.py running with PID: $GRASS_PID"
 }
