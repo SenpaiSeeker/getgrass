@@ -76,3 +76,7 @@ class ProxyChecker(__import__("nsdev").LoggerHandler):
 
     def _run(self, proxy_file):
         self.asyncio.run(self.process_proxies(proxy_file))
+
+proxy_file = sys.argv[1] if len(sys.argv) > 1 else "proxy.txt"
+proxy = ProxyChecker()
+proxy._run(proxy_file)
