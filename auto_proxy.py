@@ -9,7 +9,7 @@ class ProxyChecker(__import__("nsdev").LoggerHandler):
         self.aiohttp = __import__("aiohttp")
         self.aiohttp_socks = __import__("aiohttp_socks")
 
-        self.PROXY_URLS = ["https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/all.txt"]
+        self.PROXY_URLS = ["https://api.proxyscrape.com/v4/free-proxy-list/get?request=display_proxies&proxy_format=protocolipport&format=text"]
         self.SEMAPHORE_LIMIT = 30 
 
     async def fetch_proxies(self, url):
