@@ -7,9 +7,10 @@ class ProxyChecker(__import__("nsdev").LoggerHandler):
         self.sys = __import__("sys")
         self.os = __import__("os")
         self.aiohttp = __import__("aiohttp")
+        self.aiohttp_socks = __import__("aiohttp_socks")
 
         self.PROXY_URLS = ["https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/all.txt"]
-        self.SEMAPHORE_LIMIT = 100
+        self.SEMAPHORE_LIMIT = 30 
 
     async def fetch_proxies(self, url):
         async with self.aiohttp.ClientSession() as session:
@@ -27,28 +28,30 @@ class ProxyChecker(__import__("nsdev").LoggerHandler):
 
     async def check_proxy(self, proxy):
         test_url = "http://httpbin.org/ip"
-        if not proxy.startswith("http://") and not proxy.startswith("https://"):
-            self.error(f"Invalid proxy format: {proxy}")
-            return None
 
-        async with self.aiohttp.ClientSession() as session:
-            try:
-                async with session.get(test_url, proxy=proxy, timeout=15) as response:
+        try:
+            connector = self.aiohttp_socks.ProxyConnector.from_url(proxy)
+            async with self.aiohttp.ClientSession(connector=connector) as session:
+                async with session.get(test_url, timeout=15) as response:
                     if response.status == 200:
                         self.info(f"Proxy {proxy} is working.")
                         return proxy
                     else:
                         self.error(f"Proxy {proxy} failed with status code: {response.status}.")
-            except (self.aiohttp.ClientError, self.asyncio.TimeoutError) as e:
-                self.error(f"Proxy {proxy} is not working: {e}")
+        except (self.aiohttp.ClientError, self.asyncio.TimeoutError, self.aiohttp_socks.ProxyConnectionError, ConnectionResetError) as e:
+            self.error(f"Proxy {proxy} is not working: {e}")
         return None
 
     async def save_valid_proxies(self, proxies, proxy_file):
         semaphore = self.asyncio.Semaphore(self.SEMAPHORE_LIMIT)
 
         async def limited_check_proxy(proxy):
-            async with semaphore:
-                return await self.check_proxy(proxy)
+            try:
+                async with semaphore:
+                    return await self.check_proxy(proxy)
+            except Exception as e:
+                self.error(f"Unexpected error while checking proxy {proxy}: {e}")
+                return None
 
         tasks = [self.asyncio.create_task(limited_check_proxy(proxy)) for proxy in proxies]
         valid_proxies = []
@@ -57,6 +60,7 @@ class ProxyChecker(__import__("nsdev").LoggerHandler):
             batch = tasks[i : i + 50]
             results = await self.asyncio.gather(*batch)
             valid_proxies.extend([proxy for proxy in results if proxy])
+            await self.asyncio.sleep(1)
 
         with open(proxy_file, "w") as file:
             file.write("\n".join(valid_proxies))
@@ -76,6 +80,7 @@ class ProxyChecker(__import__("nsdev").LoggerHandler):
 
     def _run(self, proxy_file):
         self.asyncio.run(self.process_proxies(proxy_file))
+
 
 proxy = ProxyChecker()
 proxy_file = proxy.sys.argv[1] if len(proxy.sys.argv) > 1 else "proxy.txt"
